@@ -20,6 +20,7 @@ Action = Literal[
 class GitHubComment:
     date: datetime.datetime
     text: CommentText
+    short_text: CommentText
     repository: RepositoryName
     action: Action
 
@@ -37,7 +38,6 @@ HEADERS = {
     "Accept": "application/vnd.github.v3+json",
 }
 if token := os.getenv("GITHUB_TOKEN"):
-    print("Github token found, using it to authenticate")
     HEADERS["Authorization"] = f"token {token}"
 
 
@@ -113,6 +113,7 @@ def fetch_issues(
             GitHubComment(
                 dateutil.parser.parse(date),
                 CommentText(comment_json["body"]),
+                CommentText(comment_json["title"]),
                 # example repo URL: https://api.github.com/repos/tweag/chainsail
                 # so we use "tweag/chainsail" as human-readable repo identifier
                 RepositoryName(
@@ -142,6 +143,7 @@ def fetch_prs(
             GitHubComment(
                 dateutil.parser.parse(date),
                 CommentText(comment_json["body"]),
+                CommentText(comment_json["title"]),
                 # example repo URL: https://api.github.com/repos/tweag/chainsail
                 # so we use "tweag/chainsail" as human-readable repo identifier
                 RepositoryName(
@@ -167,6 +169,7 @@ def fetch_commits(
         GitHubComment(
             dateutil.parser.parse(comment_json["commit"]["author"]["date"]),
             CommentText(comment_json["commit"]["message"]),
+            CommentText(comment_json["commit"]["message"].split("\n")[0]),
             RepositoryName(comment_json["repository"]["full_name"]),
             "committed",
         )
@@ -191,6 +194,30 @@ if __name__ == "__main__":
     lower_date = datetime.datetime.now() - datetime.timedelta(days=7)
     upper_date = datetime.datetime.now()
 
-    comments = fetch_comments("simeoncarstens", lower_date, upper_date)
-    # Without `default=str`, `dumps` will fail on `datetime` objects
-    print(json.dumps(list(map(dataclasses.asdict, comments)), default=str))
+    GITHUB_GROUP = os.environ.get("GITHUB_GROUP", "https://api.github.com/orgs/tweag/teams/nix/members")
+
+    users_json = requests.get(GITHUB_GROUP, headers=HEADERS).json()
+
+    for user_json in users_json:
+        user = user_json["login"]
+
+        try:
+            comments = fetch_comments(user, lower_date, upper_date)
+
+            print("- %s" % user)
+
+            by_repo = {}
+
+            for c in comments:
+                if c.repository in by_repo:
+                    by_repo[c.repository].append(dataclasses.asdict(c))
+                else:
+                    by_repo[c.repository] = [dataclasses.asdict(c)]
+
+            # Without `default=str`, `dumps` will fail on `datetime` objects
+            for repo in by_repo:
+                print("  - %s" % repo)
+                for comment in by_repo[repo]:
+                    print("    - %s" % comment["short_text"])
+        except Exception:
+            pass
