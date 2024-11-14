@@ -11,6 +11,7 @@ import requests
 CommentText = NewType("CommentText", str)
 RepositoryName = NewType("RepositoryName", str)
 CommentType = NewType("CommentType", str)
+LinkType = NewType("LinkType", str)
 Action = Literal[
     "created", "updated", "closed", "reopened", "merged", "commented", "committed"
 ]
@@ -23,6 +24,7 @@ class GitHubComment:
     short_text: CommentText
     repository: RepositoryName
     action: Action
+    link: LinkType
 
 
 def to_github_datetime_format(dt: datetime.datetime) -> str:
@@ -120,6 +122,7 @@ def fetch_issues(
                     "/".join(comment_json["repository_url"].split("/")[-2:])
                 ),
                 latest_action,
+                LinkType(comment_json["html_url"]),
             )
         )
     return all_comments
@@ -150,6 +153,7 @@ def fetch_prs(
                     "/".join(comment_json["repository_url"].split("/")[-2:])
                 ),
                 latest_action,
+                LinkType(comment_json["html_url"]),
             )
         )
     return all_comments
@@ -172,6 +176,7 @@ def fetch_commits(
             CommentText(comment_json["commit"]["message"].split("\n")[0]),
             RepositoryName(comment_json["repository"]["full_name"]),
             "committed",
+            LinkType(comment_json["html_url"]),
         )
         for comment_json in response_items
     ]
@@ -218,6 +223,6 @@ if __name__ == "__main__":
             for repo in by_repo:
                 print("  - %s" % repo)
                 for comment in by_repo[repo]:
-                    print("    - %s" % comment["short_text"])
+                    print("    - [%s](%s)" % (comment["short_text"], comment["link"]))
         except Exception:
             pass
