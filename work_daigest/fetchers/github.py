@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
             # Without `default=str`, `dumps` will fail on `datetime` objects
             for repo in by_repo:
-                print("  - %s" % repo)
+                print("  - https://github.com/%s" % repo)
                 for comment in by_repo[repo]:
                     print("    - [%s](%s)" % (comment["short_text"], comment["link"]))
         except Exception:
