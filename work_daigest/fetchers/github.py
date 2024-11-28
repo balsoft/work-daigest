@@ -209,8 +209,6 @@ if __name__ == "__main__":
         try:
             comments = fetch_comments(user, lower_date, upper_date)
 
-            print("- %s" % user)
-
             by_repo = {}
 
             for c in comments:
@@ -218,6 +216,11 @@ if __name__ == "__main__":
                     by_repo[c.repository].append(dataclasses.asdict(c))
                 else:
                     by_repo[c.repository] = [dataclasses.asdict(c)]
+
+            if not by_repo:
+                continue
+
+            print("- %s" % user)
 
             # Without `default=str`, `dumps` will fail on `datetime` objects
             for repo in by_repo:
