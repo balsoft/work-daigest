@@ -54,10 +54,10 @@ def extract_next_page_link_from_header(link_header: str) -> str | None:
     # If there is no "rel=next" link, we're done.
     links = link_header.split(", ")
     for link in links:
-        url, rel = link.split("; ")
-        if rel == 'rel="next"':
+        parts = link.split("; ")
+        if parts[1] == 'rel="next"':
             # The URL is enclosed in angle brackets, so we strip those off
-            return url.lstrip("<").rstrip(">")
+            return parts[0].lstrip("<").rstrip(">")
     return None
 
 
@@ -227,5 +227,5 @@ if __name__ == "__main__":
                 print("  - https://github.com/%s" % repo)
                 for comment in by_repo[repo]:
                     print("    - [%s](%s)" % (comment["short_text"], comment["link"]))
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
